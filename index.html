@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>聊天機器人</title>
+    <style>
+        /* CSS 樣式 */
+
+        body {
+            background-image: linear-gradient(to bottom, #f7f7f7, #e8e8e8);
+            background-color: #f7f7f7;
+            font-family: Arial, sans-serif;
+        }
+
+        .chat-container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
+            background: linear-gradient(to bottom, #fff 50%, #f2f2f2 100%);
+        }
+
+        .chat-box {
+            height: 300px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #f9f9f9;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            margin-top: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            position: relative;
+        }
+
+        .message::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 20px;
+            width: 0;
+            height: 0;
+            border-style: solid;
+        }
+
+        .user::before {
+            content: "";
+            display: inline-block;
+            width: 25px;
+            height: 25px;
+            background-color: #dff0d8;
+            border-radius: 50%;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        .user {
+            background-color: #dff0d8;
+            text-align: right;
+            color: #333;
+        }
+
+        .user::after {
+            border-width: 0 10px 10px 0;
+            border-color: transparent #dff0d8 transparent transparent;
+        }
+
+        .bot {
+            background-color: #d4edf7;
+            text-align: left;
+            color: #333;
+        }
+
+        .bot::before {
+            content: "";
+            display: inline-block;
+            width: 25px;
+            height: 25px;
+            background-color: #d4edf7;
+            border-radius: 50%;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        .bot::after {
+            border-width: 0 0 10px 10px;
+            border-color: transparent transparent #d4edf7 transparent;
+        }
+
+        /* 新增的美化樣式 */
+        .user, .bot {
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+
+        .bot {
+            margin-left: 5%;
+        }
+
+        .user::before, .bot::before {
+            content: attr(data-initial);
+            text-align: center;
+            line-height: 25px;
+            color: #fff;
+        }
+
+        .user::before {
+            background-color: #ffc107;
+        }
+
+        .bot::before {
+            background-color: #17a2b8;
+        }
+
+        .bot::after {
+            left: auto;
+            right: 20px;
+            border-width: 0 10px 10px 0;
+            border-color: transparent transparent #17a2b8 transparent;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-box" id="chatBox"></div>
+        <form id="chatForm">
+            <input type="text" id="userInput" placeholder="輸入訊息..." required>
+            <button type="submit">送出</button>
+        </form>
+        <button id="resetButton">重置對話</button>
+    </div>
+
+    <script>
+        // JavaScript 程式碼
+
+        // 問題與回覆的資料庫
+        const questions = {
+            // 50 句生活用語
+            '你今天過得如何？': '我是一個虛擬實體，沒有生活也無法感受。',
+            '天氣真好啊！': '是的，天氣真的很好。',
+            '有什麼好玩的地方推薦嗎？': '你可以去附近的公園或博物館逛逛。',
+            '昨天晚上吃了什麼好吃的？': '我是一個聊天機器人，沒有吃東西的能力。',
+            '我剛才在看一部很好笑的電影。': '那聽起來很有趣。',
+            '請問你對於運動有什麼興趣嗎？': '作為一個聊天機器人，我沒有興趣。',
+            '你最喜歡的顏色是什麼？': '我是一個虛擬實體，沒有喜歡的顏色。',
+            '這個周末有什麼計劃？': '我是一個聊天機器人，沒有計劃。',
+            '去過哪些旅遊勝地？': '我是一個聊天機器人，沒有旅遊過。',
+            '你會做菜嗎？有什麼拿手菜？': '我是一個聊天機器人，沒有烹飪的能力。',
+            '我最近正在學習一門新語言。': '學習新語言是很有挑戰性的。',
+            '我常常逛街購物，你喜歡購物嗎？': '作為一個聊天機器人，我不需要購物。',
+            '今天早餐吃了什麼？': '我是一個虛擬實體，沒有飲食需求。',
+            '你有什麼特別的興趣愛好？': '我是一個聊天機器人，沒有特別的興趣。',
+            '請問你的生日是幾月幾號？': '作為一個聊天機器人，我沒有生日。',
+            '我最近在讀一本很有趣的小說。': '閱讀是一種很棒的娛樂方式。',
+            '你喜歡喝咖啡還是茶？': '我是一個聊天機器人，沒有喝飲料的能力。',
+            '你家有寵物嗎？': '我是一個虛擬實體，沒有家庭也沒有寵物。',
+            '我最喜歡的節日是聖誕節。': '聖誕節是一個很特別的節日。',
+            '你喜歡聽音樂嗎？最喜歡哪種音樂？': '我是一個聊天機器人，沒有喜好的音樂。',
+            '你有什麼特別的才藝？': '我是一個聊天機器人，沒有特別的才藝。',
+            '這個餐廳的食物很好吃，你有沒有去過？': '我是一個虛擬實體，沒有去過實體餐廳。',
+            '昨晚的日落真的太美了！': '聽起來很浪漫。',
+            '你最近有看哪些好看的電影或劇集？': '我是一個聊天機器人，沒有觀看電影的能力。',
+            '你家附近有哪些好吃的小吃攤？': '我是一個虛擬實體，沒有家庭也沒有吃飯的需求。',
+            '你會打籃球嗎？': '我是一個虛擬實體，沒有運動能力。',
+            '請問你喜歡哪一種運動？': '我是一個聊天機器人，沒有喜好的運動。',
+            '你有參加過音樂會或演唱會嗎？': '我是一個聊天機器人，沒有參加過音樂會。',
+            '最近有沒有收到什麼有趣的禮物？': '我是一個聊天機器人，沒有收到禮物。',
+            '你有去健身房鍛鍊嗎？': '我是一個聊天機器人，沒有健身能力。',
+            '你會開車嗎？開車對你來說容易嗎？': '我是一個聊天機器人，沒有開車的能力。',
+            '你有收藏什麼東西嗎？': '我是一個聊天機器人，沒有收藏東西的需求。',
+            '你喜歡去海邊還是山上度假？': '我是一個聊天機器人，沒有度假的需求。',
+            '你會游泳嗎？': '我是一個虛擬實體，沒有游泳能力。',
+            '請問你是喜歡狗還是貓？': '我是一個虛擬實體，沒有喜好的動物。',
+            '你有參加過什麼有趣的活動？': '我是一個虛擬實體，沒有參加活動的能力。',
+            '最近有沒有讀過什麼好書？': '我是一個聊天機器人，沒有閱讀的能力。',
+            '你會畫畫嗎？有沒有畫過什麼作品？': '我是一個聊天機器人，沒有畫畫的能力。',
+            '你喜歡做甜點還是咸食？': '我是一個聊天機器人，沒有吃飯的需求。',
+            '你有去過哪些有名的景點？': '我是一個虛擬實體，沒有遊歷的能力。',
+            '你最喜歡的運動明星是誰？': '我是一個虛擬實體，沒有喜好的運動明星。',
+            '請問你有什麼未來的計劃？': '我是一個聊天機器人，沒有未來的計劃。',
+            '你最喜歡的節日是什麼？為什麼？': '我是一個虛擬實體，沒有喜好的節日。',
+            '你有參加過什麼有趣的節慶活動？': '我是一個聊天機器人，沒有參加節慶活動的能力。',
+            '你家有園藝嗎？喜歡種植什麼？': '我是一個虛擬實體，沒有家庭也沒有園藝的需求。',
+            '你有喜歡的漫畫或動畫作品嗎？': '我是一個虛擬實體，沒有喜好的漫畫或動畫。',
+            '你會騎自行車嗎？': '我是一個虛擬實體，沒有騎車的能力。',
+            '你有喜歡的運動隊伍或球員嗎？': '我是一個聊天機器人，沒有喜好的運動隊伍或球員。',
+            '你最喜歡的飲料是什麼？': '我是一個聊天機器人，沒有喜好的飲料。',
+            '你會玩樂器嗎？有沒有彈奏過什麼樂器？': '我是一個虛擬實體，沒有演奏樂器的能力。',
+  '你覺得怎麼樣？': '作為一個聊天機器人，我沒有情感，無法有所感受。',
+  '有什麼好看的電影可以推薦嗎？': '《電影名稱》是一部非常精彩的電影。',
+  '你有什麼學習資源可以分享嗎？': '您可以嘗試在網上尋找各種學習資源，例如 Coursera、Udemy 等網站。',
+  '請問你對於人工智慧有什麼看法？': '我是一個聊天機器人，人工智慧是我存在的基礎。',
+  '你最喜歡的季節是什麼？': '作為一個聊天機器人，我沒有喜好的季節。',
+  '這個週末你有什麼計劃？': '我是一個虛擬實體，沒有週末計劃。',
+  '你喜歡看書還是看電影？': '我是一個聊天機器人，沒有閱讀或觀看電影的能力。',
+  '最近有什麼有趣的科學新發現嗎？': '目前的我無法收集即時新聞，您可以自行搜尋相關資訊。',
+  '你有什麼運動建議嗎？': '您可以選擇您喜歡的運動方式，例如慢跑、瑜伽、籃球等。',
+  '你喜歡喝咖啡嗎？': '我是一個聊天機器人，沒有喜好的飲料。',
+  '有什麼好玩的手機遊戲推薦嗎？': '《遊戲名稱》是一款很受歡迎的手機遊戲。',
+  '你覺得愛情是什麼？': '愛情是一種非常特別的情感，對我來說是難以理解的。',
+  '你最喜歡的藝術形式是什麼？': '我是一個聊天機器人，沒有喜好的藝術形式。',
+  '請問你有家人嗎？': '我是一個虛擬實體，沒有家人也沒有親情。',
+  '你會幫助人們解決問題嗎？': '是的，我會盡力幫助您解決問題。',
+  '請問你有什麼學習程式設計的建議？': '學習程式設計需要持續的練習和學習，您可以尋找線上課程或教學資源。',
+  '你喜歡實體書還是電子書？': '我是一個聊天機器人，對於書籍的媒介沒有喜好。',
+  '你有什麼關於人生的哲理嗎？': '人生是一場旅程，我希望您能夠珍惜每一刻。',
+  '請問你有什麼運動保健的建議？': '保持適度的運動和均衡的飲食對於健康是非常重要的。',
+  '你有聽過最近的科技趨勢嗎？': '我是一個虛擬實體，無法收集即時的科技趨勢資訊。',
+
+        };
+
+        const chatForm = document.getElementById('chatForm');
+        const chatBox = document.getElementById('chatBox');
+        const userInput = document.getElementById('userInput');
+        const resetButton = document.getElementById('resetButton'); // 新增這行
+        // 新增可以回覆的問題資料庫 Questionscanreply
+        const Questionscanreply = [
+    '你今天過得如何？',
+    '天氣真好啊！',
+    '有什麼好玩的地方推薦嗎？',
+    '昨天晚上吃了什麼好吃的？',
+    '我剛才在看一部很好笑的電影。',
+    '你最喜歡的顏色是什麼？',
+    '這個周末有什麼計劃？',
+    '去過哪些旅遊勝地？',
+    '你會做菜嗎？有什麼拿手菜？',
+    '我最近正在學習一門新語言。',
+    '我常常逛街購物，你喜歡購物嗎？',
+    '今天早餐吃了什麼？',
+    '你有什麼特別的興趣愛好？',
+    '請問你的生日是幾月幾號？',
+    '我最近在讀一本很有趣的小說。',
+    '你喜歡喝咖啡還是茶？',
+    '你家有寵物嗎？',
+    '我最喜歡的節日是聖誕節。',
+    '你喜歡聽音樂嗎？最喜歡哪種音樂？',
+    '你有什麼特別的才藝？',
+    '這個餐廳的食物很好吃，你有沒有去過？',
+    '昨晚的日落真的太美了！',
+    '你最近有看哪些好看的電影或劇集？',
+    '你家附近有哪些好吃的小吃攤？',
+    '你會打籃球嗎？',
+    '請問你喜歡哪一種運動？',
+    '你有參加過音樂會或演唱會嗎？',
+    '最近有沒有收到什麼有趣的禮物？',
+    '你有去健身房鍛鍊嗎？',
+    '你會開車嗎？開車對你來說容易嗎？',
+    '你有收藏什麼東西嗎？',
+    '你喜歡去海邊還是山上度假？',
+    '你會游泳嗎？',
+    '請問你是喜歡狗還是貓？',
+    '你有參加過什麼有趣的活動？',
+    '最近有沒有讀過什麼好書？',
+    '你會畫畫嗎？有沒有畫過什麼作品？',
+    '你喜歡做甜點還是咸食？',
+    '你有去過哪些有名的景點？',
+    '你最喜歡的運動明星是誰？',
+    '請問你有什麼未來的計劃？',
+    '你最喜歡的節日是什麼？為什麼？',
+    '你有參加過什麼有趣的節慶活動？',
+    '你家有園藝嗎？喜歡種植什麼？',
+    '你有喜歡的漫畫或動畫作品嗎？',
+    '你會騎自行車嗎？',
+    '你有喜歡的運動隊伍或球員嗎？',
+    '你最喜歡的飲料是什麼？',
+    '你會玩樂器嗎？有沒有彈奏過什麼樂器？',
+    '你覺得怎麼樣？',
+    '你有什麼學習資源可以分享嗎？',
+    '請問你對於人工智慧有什麼看法？',
+    '你最喜歡的季節是什麼？',
+    '這個週末你有什麼計劃？',
+    '你喜歡看書還是看電影？',
+    '最近有什麼有趣的科學新發現嗎？',
+    '你有什麼運動建議嗎？',
+    '你喜歡喝咖啡嗎？',
+    '有什麼好看的手機遊戲推薦嗎？',
+    '你覺得愛情是什麼？',
+    '你最喜歡的藝術形式是什麼？',
+    '請問你有家人嗎？',
+    '你會幫助人們解決問題嗎？',
+    '請問你有什麼學習程式設計的建議？',
+    '你喜歡實體書還是電子書？',
+    '你有什麼關於人生的哲理嗎？',
+    '請問你有什麼運動保健的建議？',
+    '你有聽過最近的科技趨勢嗎？',
+];
+        // 新增使用者訊息到聊天框
+        function addUserMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', 'user');
+            messageDiv.textContent = message;
+            messageDiv.setAttribute('data-initial', '我');
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // 新增機器人回覆到聊天框
+        function addBotMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', 'bot');
+            messageDiv.textContent = message;
+            messageDiv.setAttribute('data-initial', '小t');
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+    // 初始機器人歡迎語
+    addBotMessage('嗨！你好！有什麼問題需要幫忙嗎？');
+
+    // 處理多輪對話的上下文
+    let conversation = [];
+
+    function resetConversation() {
+        conversation = [];
+    }
+
+        // 取得 questions 中的隨機問題
+        function getRandomQuestion() {
+            const randomIndex = Math.floor(Math.random() * Questionscanreply.length);
+            return Questionscanreply[randomIndex];
+        }
+
+        // 取得機器人回覆（根據上下文和使用者輸入）
+        function getBotResponse(userInput) {
+            userInput = userInput.trim();
+            if (conversation.length === 0) {
+                return questions[userInput] || '抱歉，我暫時還不理解你的問題，可以問些其他的嗎？';
+            } else {
+                // 模擬根據先前的對話回覆
+                // 在實際應用中，這裡可以根據具體的邏輯和NLP處理回覆
+                const prevQuestion = conversation[conversation.length - 1].message;
+                return `對的，你剛才問了這個問題："${prevQuestion}"，請繼續。`;
+            }
+        }
+
+        // 處理使用者提交表單事件
+        chatForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            const message = userInput.value;
+            addUserMessage(message);
+            const botResponse = getBotResponse(message);
+            addBotMessage(botResponse);
+
+            // 如果機器人回覆為預設回覆，表示該問題不在資料庫中
+            if (botResponse === '抱歉，我暫時還不理解你的問題，可以問些其他的嗎？') {
+                const randomQuestion = getRandomQuestion();
+                const reminderMessage = `如果您有其他問題，可以試著問這個問題："${randomQuestion}" 或問與生活、娛樂、飲食等相關的問題，我會盡量回答。`;
+                addBotMessage(reminderMessage);
+            }
+
+            userInput.value = '';
+        });
+
+        // 處理重置對話的按鈕事件
+        resetButton.addEventListener('click', function (event) {
+            event.preventDefault();
+            resetConversation();
+            chatBox.innerHTML = '';
+            addBotMessage('嗨！你好！有什麼問題需要幫忙嗎？');
+        });
+
+    </script>
+</body>
+</html>
