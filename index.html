@@ -581,22 +581,22 @@ body {
   // 機器人回覆函式中的修改
 function getBotResponse(userInput) {
     userInput = userInput.trim().toLowerCase();
-    let response = '';
+    let response = [];
 
-    for (const keyword in keywordResponses) {
-        if (userInput.includes(keyword)) {
+    const userKeywords = userInput.split(' ');
+    for (const keyword of userKeywords) {
+        if (keyword in keywordResponses) {
             const responses = keywordResponses[keyword];
-            response = responses.join(' ');
-            break;
+            response.push(...responses);
         }
     }
 
-    if (response === '') {
+    if (response.length === 0) {
         const randomReminderKeyword = getRandomReminderKeyword();
-        response = `抱歉，我不清楚您的問題，請嘗試輸入其他關鍵字，例如：${randomReminderKeyword}。`;
+        response.push(`抱歉，我不清楚您的問題，請嘗試輸入其他關鍵字，例如：${randomReminderKeyword}`);
     }
 
-    return response;
+    return response.join(' ');
 }
 
 
