@@ -583,9 +583,8 @@ function getBotResponse(userInput) {
     userInput = userInput.trim().toLowerCase();
     let response = [];
 
-    const userKeywords = userInput.split(' ');
-    for (const keyword of userKeywords) {
-        if (keyword in keywordResponses) {
+    for (const keyword in keywordResponses) {
+        if (userInput.includes(keyword)) {
             const responses = keywordResponses[keyword];
             response.push(...responses);
         }
